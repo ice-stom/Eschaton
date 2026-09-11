@@ -162,5 +162,4 @@ public class BoatModel implements D0, D1 {
     @Override public double dy() { return dy; }
     @Override public double dz() { return dz; }
     @Override public float dYaw() { return dYaw; }
-
 }

@@ -2,11 +2,10 @@ package io.gitlab.icestom.eschaton.server;
 
 import io.gitlab.icestom.eschaton.core.BruteForceReverseSolver;
 import io.gitlab.icestom.eschaton.core.StreamMovementValidator;
-import io.gitlab.icestom.eschaton.kinematics.BoatInput;
 import io.gitlab.icestom.eschaton.kinematics.D0;
-import io.gitlab.icestom.eschaton.kinematics.D1;
 import io.gitlab.icestom.eschaton.server.command.SlipperinessCommand;
 import io.gitlab.icestom.eschaton.server.entity.Boat;
+import io.gitlab.icestom.eschaton.server.entity.BoatMarker;
 import io.gitlab.icestom.eschaton.server.entity.LightningRod;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -33,8 +32,12 @@ import java.util.Map;
 public class EschatonServer {
 
     private static final Logger log = LoggerFactory.getLogger(EschatonServer.class);
-    private static Map<Player, StreamMovementValidator> models = new HashMap<>();
-    private static Map<Player, LightningRod> rods = new HashMap<>();
+
+    private static final Map<Player, StreamMovementValidator> models = new HashMap<>();
+    private static final Map<Player, LightningRod> rods = new HashMap<>();
+
+    private static final StreamMovementValidator.Builder validator = StreamMovementValidator.builder()
+            .regardSpeed(StreamMovementValidator.RegardSpeed.IGNORE_WALL);
 
     static void main(String[] args) {
         MinecraftServer server = MinecraftServer.init();
@@ -51,6 +54,22 @@ public class EschatonServer {
             } else {
                 unit.modifier().fillHeight(0, 40, Block.BLUE_ICE);
             }
+
+            if (x == 2 && z == 2) {
+                unit.modifier().fillHeight(0, 40, Block.WHITE_CONCRETE);
+            }
+
+            if (x == 4 && z == 4) {
+                unit.modifier().fillHeight(0, 40, Block.SLIME_BLOCK);
+            }
+
+            if (x == -2 && z == 2) {
+                unit.modifier().fillHeight(0, 41, Block.WHITE_CONCRETE);
+            }
+
+            if (x == -3 && z == 1) {
+                unit.modifier().fillHeight(0, 41, Block.WHITE_CONCRETE);
+            }
         });
 
         GlobalEventHandler globalEventHandler = MinecraftServer.getGlobalEventHandler();
@@ -66,10 +85,10 @@ public class EschatonServer {
             if (!event.isFirstSpawn()) return;
 
             Boat boat = new Boat();
-            boat.setInstance(event.getInstance(), new Pos(0, 42, 0));
+            boat.setInstance(event.getInstance(), new Pos(0, 42, 0, 270, 0));
             boat.addPassenger(player);
 
-            models.put(player, new StreamMovementValidator(new D0.D0Record(
+            models.put(player, validator.build(new D0.D0Record(
                     0, 42, 0, 0
             ), (x, y, z) -> {
 
@@ -79,9 +98,7 @@ public class EschatonServer {
                     return null;
                 }
 
-                float friction = block.registry().friction();
-
-                return friction;
+                return block.registry().friction();
             }));
 
             LightningRod lightningRod = new LightningRod();
@@ -121,7 +138,10 @@ public class EschatonServer {
                 player.sendActionBar(Component.text(String.format("%s", result.input()), result.exact() ? NamedTextColor.GREEN : NamedTextColor.RED));
 
                 if (!result.exact()) {
-                    player.sendMessage(Component.text(String.format("Fail %s: %s, %s, %s", result.error(), 0, 0, 0), NamedTextColor.RED));
+                    player.sendMessage(Component.text(String.format("Fail %s %s: %s, %s, %s", result.input(), result.error(), 0, 0, 0), NamedTextColor.RED));
+
+                    BoatMarker marker = new BoatMarker();
+                    marker.setInstance(instanceContainer, position.asVec().asPos());
                 }
             }
         });
