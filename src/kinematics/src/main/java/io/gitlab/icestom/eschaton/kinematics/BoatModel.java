@@ -68,6 +68,10 @@ public class BoatModel implements D0, D1 {
                                     && q < sliceMaxZ && (q + 1) > sliceMinZ;
 
                             if (overlaps) {
+                                if (world.isWater(p, s, q)) {
+                                    return 0.9f;
+                                }
+
                                 Float slipperiness = world.getBlockSlipperiness(p, s, q);
                                 if (slipperiness != null) {
                                     sum += slipperiness;
@@ -88,7 +92,7 @@ public class BoatModel implements D0, D1 {
     public void applyLocal(D2 accel) {
         Float mu = getMu();
 
-        if (mu == null) mu = 0.4f;
+        if (mu == null) mu = 0.9f;
 
         dYaw *= mu;
         dYaw += accel.aYaw();
@@ -116,10 +120,22 @@ public class BoatModel implements D0, D1 {
 
     private void applyGlobal(D2 accel, float mu) {
         dx *= mu;
-        dy *= mu;
         dz *= mu;
         applyD2(accel);
         applyD1(this);
+
+        applyEffectsFromBlocks();
+    }
+
+    private void applyEffectsFromBlocks() {
+        if (world.isSlime((int) x, (int) Math.floor(y - 0.1), (int) z)) {
+            double absDy = Math.abs(dy);
+            if (absDy < 0.1) {
+                double factor = 0.4 + absDy * 0.2;
+                dx *= factor;
+                dz *= factor;
+            }
+        }
     }
 
     public void goTo(D0 d0, D1 d1) {
@@ -158,6 +174,7 @@ public class BoatModel implements D0, D1 {
     @Override public double y() { return y; }
     @Override public double z() { return z; }
     @Override public float yaw() { return yaw; }
+
     @Override public double dx() { return dx; }
     @Override public double dy() { return dy; }
     @Override public double dz() { return dz; }

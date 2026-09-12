@@ -1,8 +1,10 @@
 package io.gitlab.icestom.eschaton.server;
 
+import io.github.openboatutils.protocol.channels.OBUSettingsPacket;
 import io.gitlab.icestom.eschaton.core.BruteForceReverseSolver;
 import io.gitlab.icestom.eschaton.core.StreamMovementValidator;
 import io.gitlab.icestom.eschaton.kinematics.D0;
+import io.gitlab.icestom.eschaton.kinematics.WorldLike;
 import io.gitlab.icestom.eschaton.server.command.SlipperinessCommand;
 import io.gitlab.icestom.eschaton.server.entity.Boat;
 import io.gitlab.icestom.eschaton.server.entity.BoatMarker;
@@ -26,8 +28,11 @@ import net.minestom.server.network.packet.server.play.VehicleMovePacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
+import static io.gitlab.icestom.eschaton.server.command.SlipperinessCommand.writePacket;
 
 public class EschatonServer {
 
@@ -37,6 +42,7 @@ public class EschatonServer {
     private static final Map<Player, LightningRod> rods = new HashMap<>();
 
     private static final StreamMovementValidator.Builder validator = StreamMovementValidator.builder()
+            .regardSlime(StreamMovementValidator.RegardSlime.SKIP)
             .regardSpeed(StreamMovementValidator.RegardSpeed.IGNORE_WALL);
 
     static void main(String[] args) {
@@ -64,11 +70,19 @@ public class EschatonServer {
             }
 
             if (x == -2 && z == 2) {
-                unit.modifier().fillHeight(0, 41, Block.WHITE_CONCRETE);
+                unit.modifier().fillHeight(0, 42, Block.WHITE_CONCRETE);
             }
 
             if (x == -3 && z == 1) {
-                unit.modifier().fillHeight(0, 41, Block.WHITE_CONCRETE);
+                unit.modifier().fillHeight(0, 42, Block.WHITE_CONCRETE);
+            }
+
+            if (x == 3 && z == 3) {
+                unit.modifier().fillHeight(0, 41, Block.PACKED_ICE);
+            }
+
+            if (x == 6 && z == 6) {
+                unit.modifier().fillHeight(39, 40, Block.WATER);
             }
         });
 
@@ -88,17 +102,36 @@ public class EschatonServer {
             boat.setInstance(event.getInstance(), new Pos(0, 42, 0, 270, 0));
             boat.addPassenger(player);
 
+            try {
+                player.sendPacket(writePacket(new OBUSettingsPacket.StepSize(1f)));
+                player.sendPacket(writePacket(new OBUSettingsPacket.JumpForce(0.5f)));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
             models.put(player, validator.build(new D0.D0Record(
                     0, 42, 0, 0
-            ), (x, y, z) -> {
+            ), new WorldLike() {
+                @Override
+                public Float getBlockSlipperiness(int x, int y, int z) {
+                    Block block = instanceContainer.getBlock(x, y, z);
 
-                Block block = instanceContainer.getBlock(x, y, z);
+                    if (block.isAir()) {
+                        return null;
+                    }
 
-                if (block.isAir()) {
-                    return null;
+                    return block.registry().friction();
                 }
 
-                return block.registry().friction();
+                @Override
+                public boolean isWater(int x, int y, int z) {
+                    return instanceContainer.getBlock(x, y, z).isLiquid();
+                }
+
+                @Override
+                public boolean isSlime(int x, int y, int z) {
+                    return instanceContainer.getBlock(x, y, z) == Block.SLIME_BLOCK;
+                }
             }));
 
             LightningRod lightningRod = new LightningRod();
@@ -138,7 +171,7 @@ public class EschatonServer {
                 player.sendActionBar(Component.text(String.format("%s", result.input()), result.exact() ? NamedTextColor.GREEN : NamedTextColor.RED));
 
                 if (!result.exact()) {
-                    player.sendMessage(Component.text(String.format("Fail %s %s: %s, %s, %s", result.input(), result.error(), 0, 0, 0), NamedTextColor.RED));
+                    player.sendMessage(Component.text(String.format("Fail %s %s: %.10f, %.10f, %.10f", result.input(), result.error(), result.ex(), result.ey(), result.ez()), NamedTextColor.RED));
 
                     BoatMarker marker = new BoatMarker();
                     marker.setInstance(instanceContainer, position.asVec().asPos());

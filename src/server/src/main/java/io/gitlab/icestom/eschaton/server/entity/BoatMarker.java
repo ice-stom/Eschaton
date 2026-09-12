@@ -10,6 +10,9 @@ public class BoatMarker extends Entity {
     public BoatMarker() {
         super(EntityType.BLOCK_DISPLAY);
 
+        hasPhysics = false;
+        setNoGravity(true);
+
         BlockDisplayMeta meta = (BlockDisplayMeta) getEntityMeta();
 
         meta.setBlockState(Block.RED_STAINED_GLASS);

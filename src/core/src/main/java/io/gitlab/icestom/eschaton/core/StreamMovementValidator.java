@@ -4,29 +4,39 @@ import io.gitlab.icestom.eschaton.kinematics.*;
 
 public class StreamMovementValidator {
     private final BoatModel model;
+    private final WorldLike world;
 
     private final RegardSpeed regardSpeed;
+    private final RegardSlime regardSlime;
 
     private int countWalltapTime = 0;
 
     StreamMovementValidator(D0 d0, WorldLike world,
-                            RegardSpeed regardSpeed) {
+                            RegardSpeed regardSpeed,
+                            RegardSlime regardSlime) {
         this.model = new BoatModel(d0, D1.ZERO, world);
+        this.world = world;
         this.regardSpeed = regardSpeed;
+        this.regardSlime = regardSlime;
     }
 
     public BruteForceReverseSolver.Result update(D0 now) {
         D1 delta = now.d0sub(model);
 
+        if (regardSlime == RegardSlime.SKIP && world.isSlime((int) model.x(), (int) Math.floor(model.y() - 0.1), (int) model.z())) {
+            model.goTo(now, delta);
+            return null;
+        }
+
         boolean flagAllowWalls = false;
 
         if (regardSpeed == RegardSpeed.IGNORE_WALL) {
             flagAllowWalls =
-                    (Math.abs(delta.dx()) < 1e-6 && Math.abs((now.yaw()) % 180) > 1e-6) ||
-                    (Math.abs(delta.dz()) < 1e-6 && Math.abs((now.yaw() - 90) % 180) > 1e-6);
+                    (Math.abs(delta.dx()) < 1e-6 && Math.abs(delta.dz()) > 1e-6 && Math.abs((now.yaw()) % 180) > 1e-6) ||
+                    (Math.abs(delta.dz()) < 1e-6 && Math.abs(delta.dx()) > 1e-6 && Math.abs((now.yaw() - 90) % 180) > 1e-6);
         }
 
-        boolean wasSlower = delta.d1err() < model.d1err();
+        boolean wasSlower = delta.d1err() <  model.d1err();
         boolean couldBeWalltap = wasSlower;
 
         if (!couldBeWalltap) couldBeWalltap = delta.dx() * model.dx() <= 1e-6;
@@ -67,16 +77,7 @@ public class StreamMovementValidator {
             countWalltapTime = 0;
         }
 
-        if (!res.exact()) {
-            System.out.println(delta.dx() * model.dx());
-            System.out.println(delta.dz() * model.dz());
-        }
-
         model.goTo(now, delta);
-
-        if (model.dy() != 0) {
-            return null;
-        }
 
         return res;
     }
@@ -87,6 +88,11 @@ public class StreamMovementValidator {
         FASTER
     }
 
+    public enum RegardSlime {
+        ALWAYS,
+        SKIP
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -94,9 +100,15 @@ public class StreamMovementValidator {
     public static class Builder {
 
         private RegardSpeed regardSpeed = RegardSpeed.ALWAYS;
+        private RegardSlime regardSlime = RegardSlime.ALWAYS;
 
         public Builder regardSpeed(RegardSpeed speed) {
             this.regardSpeed = speed;
+            return this;
+        }
+
+        public Builder regardSlime(RegardSlime slime) {
+            this.regardSlime = slime;
             return this;
         }
 
@@ -104,7 +116,8 @@ public class StreamMovementValidator {
             return new StreamMovementValidator(
                     now,
                     world,
-                    regardSpeed
+                    regardSpeed,
+                    regardSlime
             );
         }
     }
