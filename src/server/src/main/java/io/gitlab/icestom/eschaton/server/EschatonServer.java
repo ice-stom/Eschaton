@@ -132,6 +132,11 @@ public class EschatonServer {
                 public boolean isSlime(int x, int y, int z) {
                     return instanceContainer.getBlock(x, y, z) == Block.SLIME_BLOCK;
                 }
+
+                @Override
+                public float getAirSlipperiness() {
+                    return VANILLA_AIR_FRICTION;
+                }
             }));
 
             LightningRod lightningRod = new LightningRod();

@@ -92,7 +92,7 @@ public class BoatModel implements D0, D1 {
     public void applyLocal(D2 accel) {
         Float mu = getMu();
 
-        if (mu == null) mu = 0.9f;
+        if (mu == null) mu = world.getAirSlipperiness();
 
         dYaw *= mu;
         dYaw += accel.aYaw();

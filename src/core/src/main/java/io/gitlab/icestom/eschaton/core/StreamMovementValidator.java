@@ -8,20 +8,34 @@ public class StreamMovementValidator {
 
     private final RegardSpeed regardSpeed;
     private final RegardSlime regardSlime;
+    private final RegardGravity regardGravity;
 
     private int countWalltapTime = 0;
 
     StreamMovementValidator(D0 d0, WorldLike world,
                             RegardSpeed regardSpeed,
-                            RegardSlime regardSlime) {
+                            RegardSlime regardSlime,
+                            RegardGravity regardGravity) {
         this.model = new BoatModel(d0, D1.ZERO, world);
         this.world = world;
         this.regardSpeed = regardSpeed;
         this.regardSlime = regardSlime;
+        this.regardGravity = regardGravity;
     }
 
     public BruteForceReverseSolver.Result update(D0 now) {
         D1 delta = now.d0sub(model);
+
+
+        if (regardGravity == RegardGravity.SKIP && model.dy() != 0) {
+            model.goTo(now, delta);
+            return null;
+        }
+
+        if (regardGravity == RegardGravity.SKIP && delta.dy() != 0) {
+            model.goTo(now, delta);
+            return null;
+        }
 
         if (regardSlime == RegardSlime.SKIP && world.isSlime((int) model.x(), (int) Math.floor(model.y() - 0.1), (int) model.z())) {
             model.goTo(now, delta);
@@ -93,14 +107,20 @@ public class StreamMovementValidator {
         SKIP
     }
 
+    public enum RegardGravity {
+        ENABLE_THIS_IS_BUGGY,
+        SKIP
+    }
+
     public static Builder builder() {
         return new Builder();
     }
 
     public static class Builder {
 
-        private RegardSpeed regardSpeed = RegardSpeed.ALWAYS;
-        private RegardSlime regardSlime = RegardSlime.ALWAYS;
+        private RegardSpeed regardSpeed = RegardSpeed.IGNORE_WALL;
+        private RegardSlime regardSlime = RegardSlime.SKIP;
+        private RegardGravity regardGravity = RegardGravity.SKIP;
 
         public Builder regardSpeed(RegardSpeed speed) {
             this.regardSpeed = speed;
@@ -112,12 +132,18 @@ public class StreamMovementValidator {
             return this;
         }
 
+        public Builder regardGravity(RegardGravity gravity) {
+            this.regardGravity = gravity;
+            return this;
+        }
+
         public StreamMovementValidator build(D0 now, WorldLike world) {
             return new StreamMovementValidator(
                     now,
                     world,
                     regardSpeed,
-                    regardSlime
+                    regardSlime,
+                    regardGravity
             );
         }
     }
