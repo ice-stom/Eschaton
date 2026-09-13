@@ -7,7 +7,7 @@ pluginManagement {
 
 rootProject.name = "Eschaton"
 
-include(":src:core")
-include(":src:kinematics")
-include(":src:server")
-include(":src:paper")
+listOf("core", "kinematics", "server", "paper").forEach {
+    include(":$it")
+    project(":$it").projectDir = file("src/$it")
+}

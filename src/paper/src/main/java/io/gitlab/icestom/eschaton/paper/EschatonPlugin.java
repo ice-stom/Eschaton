@@ -40,6 +40,7 @@ public class EschatonPlugin extends JavaPlugin implements PacketListener {
     public static EschatonPlugin instance;
 
     private static boolean VERBOSE = false;
+    private static boolean DEV = true;
 
     private static final int HEAT_TRIGGER_THRESHOLD = 2;
 
@@ -52,11 +53,17 @@ public class EschatonPlugin extends JavaPlugin implements PacketListener {
     private final Map<UUID, Long> lasts = new HashMap<>();
     private final Map<UUID, HeatTracker> heat = new HashMap<>();
 
-    private Map<World, WorldLike> worldWrappers = new HashMap<>();
+    private final Map<World, WorldLike> worldWrappers = new HashMap<>();
 
     private volatile boolean eschatonEnabled = false;
     private final Set<UUID> ignored = ConcurrentHashMap.newKeySet();
     private final Set<UUID> subscribers = ConcurrentHashMap.newKeySet();
+
+    private final FailLogger failLogger;
+
+    EschatonPlugin() {
+        this.failLogger = new FailLogger(this);
+    }
 
     @Override
     public void onLoad() {
@@ -73,23 +80,26 @@ public class EschatonPlugin extends JavaPlugin implements PacketListener {
     @Override
     public void onDisable() {
         PacketEvents.getAPI().terminate();
+        failLogger.close();
     }
 
     @Override
     public void onUserLogin(UserLoginEvent event) {
-        try {
-            event.getUser().sendPacket(writeOBUPacket(new OBUSettingsPacket.Compound(new OBUSettingsPacket.CompoundPayload(List.of(
-                    new OBUSettingsPacket.Reset(),
-                    new OBUSettingsPacket.AirStepping(true),
-                    new OBUSettingsPacket.AirControl(true),
-                    new OBUSettingsPacket.BlockSlipperiness(0.989f, List.of("minecraft:air", "minecraft:petrified_oak_slab")),
-                    new OBUSettingsPacket.BlockSlipperiness(0.98f, List.of("minecraft:oxidized_cut_copper_slab")),
-//                    new OBUSettingsPacket.BlockSlipperiness(0.98901f, List.of("minecraft:blue_ice")),
-                    new OBUSettingsPacket.StepSize(0.5f),
-                    new OBUSettingsPacket.WaterElevation(true)
-            )))));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if (DEV) {
+            try {
+                event.getUser().sendPacket(writeOBUPacket(new OBUSettingsPacket.Compound(new OBUSettingsPacket.CompoundPayload(List.of(
+                        new OBUSettingsPacket.Reset(),
+                        new OBUSettingsPacket.AirStepping(true),
+                        new OBUSettingsPacket.AirControl(true),
+                        new OBUSettingsPacket.BlockSlipperiness(0.989f, List.of("minecraft:air", "minecraft:petrified_oak_slab")),
+                        new OBUSettingsPacket.BlockSlipperiness(0.98f, List.of("minecraft:oxidized_cut_copper_slab")),
+//                        new OBUSettingsPacket.BlockSlipperiness(0.98901`f, List.of("minecraft:blue_ice")),
+                        new OBUSettingsPacket.StepSize(0.5f),
+                        new OBUSettingsPacket.WaterElevation(true)
+                )))));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -177,6 +187,8 @@ public class EschatonPlugin extends JavaPlugin implements PacketListener {
                     if (current >= HEAT_TRIGGER_THRESHOLD) {
                         onHeatTriggered(player, current);
                     }
+
+                    failLogger.log(player.getUniqueId().toString(), gameTime, now, result);
                 }
 
                 heat.computeIfPresent(uuid, (k, t) -> t.isExpired(gameTime) ? null : t);

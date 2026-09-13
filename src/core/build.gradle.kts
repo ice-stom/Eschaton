@@ -10,5 +10,5 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":src:kinematics"))
+    implementation(project(":kinematics"))
 }

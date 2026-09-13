@@ -18,8 +18,8 @@ repositories {
 dependencies {
     compileOnly("com.github.retrooper:packetevents-spigot:2.11.2")
 
-    implementation(project(":src:core"))
-    implementation(project(":src:kinematics"))
+    implementation(project(":core"))
+    implementation(project(":kinematics"))
     implementation("io.github.openboatutils:Protocol:0.0.7")
 
     paperweight.paperDevBundle("1.21.11-R0.1-SNAPSHOT")
@@ -46,12 +46,12 @@ tasks {
     }
 
     jar {
-        archiveVersion.set("")
-        archiveClassifier.set("")
+        archiveBaseName.set("eschaton-paper")
+        archiveClassifier.set("plain")
     }
 
     shadowJar {
-        archiveVersion.set("")
+        archiveBaseName.set("eschaton-paper")
         archiveClassifier.set("")
 
         dependencies {

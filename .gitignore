@@ -2,6 +2,7 @@
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
+!**/src/**/run
 !**/src/test/**/build/
 .kotlin
 

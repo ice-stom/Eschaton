@@ -17,8 +17,8 @@ dependencies {
 
     implementation("io.github.openboatutils:Protocol:0.0.7")
 
-    implementation(project(":src:core"))
-    implementation(project(":src:kinematics"))
+    implementation(project(":core"))
+    implementation(project(":kinematics"))
 }
 
 tasks {
