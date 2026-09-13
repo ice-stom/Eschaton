@@ -1,0 +1,24 @@
+name: Eschaton
+version: '${version}'
+description: A Predictive Iceboat Racing Anticheat
+authors: [ localhackerman ]
+website: https://github.com/ice-stom/Eschaton
+prefix: Eschaton
+
+load: STARTUP
+api-version: '1.21'
+
+main: io.gitlab.icestom.eschaton.paper.EschatonPlugin
+bootstrapper: io.gitlab.icestom.eschaton.paper.EschatonBootstrapper
+
+permissions:
+  eschaton.admin:
+    description: Allows toggling Eschaton and managing the ignore list.
+    default: op
+
+dependencies:
+  server:
+    packetevents:
+      load: BEFORE
+      required: true
+      join-classpath: true
